@@ -1,6 +1,5 @@
 # Sloboda CMO Telegram bot
-# Use a recent Anthropic SDK — adaptive thinking and the web_search_20260209
-# server tool are required by claude_client.py.
-anthropic>=0.69.0
+google-genai>=1.0.0          # default provider (CMO_PROVIDER=gemini)
+anthropic>=0.69.0            # used only when CMO_PROVIDER=anthropic
 python-telegram-bot>=21.6
 python-dotenv>=1.0.1

@@ -18,7 +18,7 @@ from telegram.ext import (
 
 from . import config, menu
 from .brand import HELP, WELCOME
-from .claude_client import generate
+from .llm import generate
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -192,7 +192,12 @@ def main() -> None:
         if config.ALLOWED_CHAT_IDS
         else "전체 공개(allowlist 미설정)"
     )
-    logger.info("Sloboda CMO bot starting (model=%s, access=%s)…", config.MODEL, access)
+    logger.info(
+        "Sloboda CMO bot starting (provider=%s, model=%s, access=%s)…",
+        config.PROVIDER,
+        config.active_model(),
+        access,
+    )
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 

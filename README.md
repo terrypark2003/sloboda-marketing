@@ -1,8 +1,9 @@
 # 슬로보다 CMO (Chief Marketing Officer) 텔레그램 봇
 
 슬로보다(SLOBODA)의 **AI 마케팅 책임자**를 텔레그램 봇으로 만든 프로젝트입니다.
-Claude(Opus 4.8)가 우리 브랜드와 시장을 이해한 상태에서, 대화하며 마케팅 옵션을
-함께 탐구하고 실행 계획을 만들어 줍니다.
+**Google Gemini**(기본) 또는 Claude가 우리 브랜드와 시장을 이해한 상태에서, 대화하며
+마케팅 옵션을 함께 탐구하고 실행 계획을 만들어 줍니다. 제공사는 `.env`의 `CMO_PROVIDER`로
+고릅니다(`gemini` 기본, `anthropic` 선택).
 
 목표는 명확합니다 — **재생크림(No.7 리커버리 크림)을 마케팅으로 판다.**
 판매 채널은 **① 병원 ② 네이버 스마트스토어 ③ 와디즈 펀딩** 입니다.
@@ -10,7 +11,7 @@ Claude(Opus 4.8)가 우리 브랜드와 시장을 이해한 상태에서, 대화
 ## CMO가 하는 일
 
 - 🎯 **마케팅·브랜드 전략 수립** — 신생 브랜드 / 저예산 가정, 실행 가능한 선택지 제시
-- 🔍 **시장 조사 & 고객 분석** — `web_search`로 경쟁사·트렌드·검색 흐름을 **최신 데이터**로 조사
+- 🔍 **시장 조사 & 고객 분석** — 실시간 웹검색(Gemini=Google 검색 그라운딩 / Claude=web_search)으로 경쟁사·트렌드를 **최신 데이터**로 조사
 - 📣 **브랜드 인지도 캠페인 기획** — 채널별 캠페인·콘텐츠·30일 실행 플랜
 
 CMO는 다음 브랜드 사실을 이미 알고 있습니다 (출처: 네이버 스마트스토어, 와디즈 캠페인 #408720, 블로그 리뷰):
@@ -29,8 +30,9 @@ CMO는 다음 브랜드 사실을 이미 알고 있습니다 (출처: 네이버 
 1. 텔레그램에서 [@BotFather](https://t.me/BotFather) 검색 → `/newbot`
 2. 봇 이름과 사용자명을 정하면 **토큰**(`123456789:ABC...`)을 줍니다.
 
-### 2) Anthropic API 키 발급
-- <https://console.anthropic.com/> 에서 API 키(`sk-ant-...`) 발급
+### 2) Gemini API 키 발급 (기본 제공사)
+- <https://aistudio.google.com/apikey> 에서 API 키(`AIza...`) 발급 (무료 티어 있음)
+- (Claude를 쓰려면 대신 <https://console.anthropic.com/> 에서 키 발급 후 `CMO_PROVIDER=anthropic`)
 
 ### 3) 설치 & 실행
 ```bash
@@ -42,7 +44,8 @@ pip install -r requirements.txt
 
 cp .env.example .env        # .env 파일에 토큰/키 입력
 # TELEGRAM_BOT_TOKEN=...
-# ANTHROPIC_API_KEY=...
+# CMO_PROVIDER=gemini
+# GEMINI_API_KEY=AIza...
 
 python run.py
 ```
@@ -66,12 +69,14 @@ python run.py
 ```bash
 cp .env.example .env
 ```
-그리고 `.env`를 열어 두 줄을 채우세요:
+그리고 `.env`를 열어 채우세요 (기본 = Gemini):
 ```dotenv
 TELEGRAM_BOT_TOKEN=123456789:AA....   # BotFather가 준 토큰
-ANTHROPIC_API_KEY=sk-ant-....         # Anthropic 콘솔 키
+CMO_PROVIDER=gemini
+GEMINI_API_KEY=AIza....               # Google AI Studio 키
 ```
-> ⚠️ **토큰/키는 채팅·깃·캡처로 공유하지 마세요.** 노출되면 즉시 재발급(@BotFather `/revoke`, Anthropic 콘솔에서 키 삭제)하세요. `.env`는 운영하는 서버에만 둡니다.
+> ⚠️ **토큰/키는 채팅·깃·캡처로 공유하지 마세요.** 노출되면 즉시 재발급(@BotFather `/revoke`, 키 발급처에서 삭제)하세요. `.env`는 운영하는 서버에만 둡니다.
+> (Railway 같은 호스팅이면 파일 대신 **Variables 화면**에 같은 값들을 넣습니다.)
 
 봇은 "토큰을 특정 chat에 연결"하는 구조가 아닙니다. 토큰만 있으면 봇이 살아나고, **그 봇에게 말을 거는 누구에게나** 응답합니다. 그래서 아래처럼 **우리 팀만** 쓰도록 잠그는 걸 권장합니다.
 
@@ -132,12 +137,15 @@ sudo journalctl -u cmo-bot -f   # 로그
 | 변수 | 필수 | 기본값 | 설명 |
 |------|:----:|--------|------|
 | `TELEGRAM_BOT_TOKEN` | ✅ | — | BotFather 토큰 |
-| `ANTHROPIC_API_KEY` | ✅ | — | Anthropic API 키 |
+| `CMO_PROVIDER` | | `gemini` | LLM 제공사: `gemini` 또는 `anthropic` |
+| `GEMINI_API_KEY` | gemini일 때 ✅ | — | Google AI Studio 키 |
+| `CMO_GEMINI_MODEL` | | `gemini-2.5-flash` | Gemini 모델. 더 저렴/무료티어: `gemini-2.5-flash-lite` |
+| `ANTHROPIC_API_KEY` | anthropic일 때 ✅ | — | Anthropic API 키 |
+| `CMO_MODEL` | | `claude-opus-4-8` | (anthropic) Claude 모델. 비용↓: `claude-sonnet-4-6`, `claude-haiku-4-5` |
 | `CMO_ALLOWED_CHAT_IDS` | | (비어 있음) | 허용할 chat ID 목록(콤마). 비우면 전체 공개 |
-| `CMO_MODEL` | | `claude-opus-4-8` | 사용할 Claude 모델. 비용↓: `claude-sonnet-4-6`(~40%↓), `claude-haiku-4-5`(가장 저렴) |
 | `CMO_MAX_TOKENS` | | `8000` | 답변 최대 토큰 |
-| `CMO_ENABLE_WEB_SEARCH` | | `true` | 실시간 시장 조사(web_search) 사용 |
-| `CMO_ENABLE_THINKING` | | `true` | 적응형 사고(adaptive thinking) 사용 |
+| `CMO_ENABLE_WEB_SEARCH` | | `true` | 실시간 시장 조사(웹검색) 사용 |
+| `CMO_ENABLE_THINKING` | | `true` | 추론 사용 (false면 비용↓) |
 | `CMO_HISTORY_MAX_MESSAGES` | | `24` | 대화 메모리 길이 |
 | `CMO_REQUEST_TIMEOUT` | | `300` | API 요청 타임아웃(초) |
 
@@ -149,6 +157,8 @@ cmo_bot/
   config.py             # 환경 변수 / 설정
   brand.py              # 브랜드 지식 + CMO 시스템 프롬프트 (지식의 단일 출처)
   menu.py               # 인라인 "마케팅 옵션" 메뉴
+  llm.py                # 제공사 선택 (CMO_PROVIDER → gemini / anthropic)
+  gemini_client.py      # Gemini 호출 (Google 검색 그라운딩)
   claude_client.py      # Claude 호출 (adaptive thinking + web_search)
   bot.py                # 텔레그램 핸들러 / 메모리 / 메시지 분할
 requirements.txt
@@ -160,21 +170,20 @@ docker-compose.yml       # 상시 구동(자동 재시작)
 ## 동작 방식 (간단히)
 
 `bot.py`가 텔레그램 메시지를 받아 채팅별 대화 기록에 쌓고, 워커 스레드에서
-`claude_client.generate()`를 호출합니다. Claude는 `brand.py`의 CMO 시스템
-프롬프트로 역할을 부여받고, 필요 시 `web_search` 서버 도구로 최신 시장 정보를
-직접 조사한 뒤 답합니다. 답변은 텔레그램 길이에 맞게 분할되어 전송됩니다.
+`llm.generate()`(→ `CMO_PROVIDER`에 따라 Gemini 또는 Claude)를 호출합니다.
+모델은 `brand.py`의 CMO 시스템 프롬프트로 역할을 부여받고, 필요 시 실시간 웹검색으로
+최신 시장 정보를 조사한 뒤 답합니다. 답변은 텔레그램 길이에 맞게 분할되어 전송됩니다.
 
 ## 비용 메모
 
-- 대화·시장 조사 한 번에 Claude API 토큰이 소모됩니다(특히 `web_search` 사용 시).
-- 대략: 일반 대화 ~100~250원/회, 웹검색까지 도는 무거운 질문 ~300~600원/회 (모델·길이에 따라 변동).
-- 절약 모드 — `.env`에 아래처럼:
+- 기본 제공사는 **Gemini**로, Claude(Opus)보다 훨씬 저렴합니다.
+  - 참고 단가: Gemini 2.5 Flash ≈ $0.30/$2.50, **Flash-Lite ≈ $0.10/$0.40 (무료 티어 있음)**, Claude Opus ≈ $5/$25 (입력/출력 1M 토큰).
+- 더 아끼는 법 — `.env`에:
   ```dotenv
-  CMO_MODEL=claude-sonnet-4-6     # 또는 claude-haiku-4-5 (가장 저렴)
-  CMO_ENABLE_WEB_SEARCH=false     # 실시간 조사 끄기 (가장 큰 절감)
-  CMO_ENABLE_THINKING=false       # 추론 토큰 줄이기
+  CMO_GEMINI_MODEL=gemini-2.5-flash-lite   # 가장 저렴 (+ 무료 티어)
+  CMO_ENABLE_WEB_SEARCH=false              # 실시간 조사 끄기 (큰 절감)
+  CMO_ENABLE_THINKING=false                # 추론 끄기
   ```
-  thinking과 web_search 변형은 모델에 맞게 자동 선택되므로 `CMO_MODEL`만 바꿔도 동작합니다.
 
 ## 운영 메모
 
