@@ -16,6 +16,21 @@ def _flag(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _int_set(name: str) -> set[int]:
+    """Parse a comma/space/semicolon-separated list of integers from env."""
+    raw = os.getenv(name, "")
+    ids: set[int] = set()
+    for part in raw.replace(";", ",").replace(" ", ",").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            ids.add(int(part))
+        except ValueError:
+            pass
+    return ids
+
+
 TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "").strip()
 
@@ -32,6 +47,10 @@ HISTORY_MAX_MESSAGES: int = int(os.getenv("CMO_HISTORY_MAX_MESSAGES", "24"))
 
 # Max server-side web searches Claude may run per turn (cost guard).
 WEB_SEARCH_MAX_USES: int = int(os.getenv("CMO_WEB_SEARCH_MAX_USES", "5"))
+
+# Allowlist of Telegram chat IDs permitted to use the CMO (protects API budget).
+# Empty = open to anyone who finds the bot. Each user can get their own ID via /id.
+ALLOWED_CHAT_IDS: set[int] = _int_set("CMO_ALLOWED_CHAT_IDS")
 
 
 def validate() -> None:

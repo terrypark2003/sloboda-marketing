@@ -54,9 +54,78 @@ python run.py
   - 예) "와디즈 펀딩 목표 금액 어떻게 잡을까?", "스마트스토어 첫 리뷰 30개 모으는 법"
 - `/menu` — 자주 쓰는 마케팅 옵션 버튼 (인지도 캠페인 · 시장 조사 · 타깃 분석 · 채널 전략 · 콘텐츠/카피 · KPI · 30일 플랜 · 와디즈)
 - `/reset` — 대화 맥락 초기화
+- `/id` — 이 채팅의 chat ID 확인 (허용 목록 등록용)
 - `/help` — 도움말
 
 > 💡 **매출·방문수·전환율·광고비·리뷰 수** 같은 숫자를 알려 주면 훨씬 구체적인 조언을 받을 수 있어요.
+
+## 🔑 토큰은 어디에 연결하나요?
+
+봇 토큰과 API 키는 **코드가 아니라 `.env` 파일**에 넣습니다. (깃에 커밋되지 않음)
+
+```bash
+cp .env.example .env
+```
+그리고 `.env`를 열어 두 줄을 채우세요:
+```dotenv
+TELEGRAM_BOT_TOKEN=123456789:AA....   # BotFather가 준 토큰
+ANTHROPIC_API_KEY=sk-ant-....         # Anthropic 콘솔 키
+```
+> ⚠️ **토큰/키는 채팅·깃·캡처로 공유하지 마세요.** 노출되면 즉시 재발급(@BotFather `/revoke`, Anthropic 콘솔에서 키 삭제)하세요. `.env`는 운영하는 서버에만 둡니다.
+
+봇은 "토큰을 특정 chat에 연결"하는 구조가 아닙니다. 토큰만 있으면 봇이 살아나고, **그 봇에게 말을 거는 누구에게나** 응답합니다. 그래서 아래처럼 **우리 팀만** 쓰도록 잠그는 걸 권장합니다.
+
+## 🔒 우리 팀만 사용하게 잠그기 (chat ID 허용 목록)
+
+API 비용이 들기 때문에, 허가된 사람만 쓰도록 제한할 수 있어요.
+
+1. 봇을 실행한 뒤, 사용할 사람이 각자 봇에게 **`/id`** 를 보냅니다 → 자신의 **chat ID**(숫자)를 알려 줍니다.
+2. 그 ID들을 `.env`에 콤마로 넣습니다:
+   ```dotenv
+   CMO_ALLOWED_CHAT_IDS=123456789,987654321
+   ```
+3. 봇을 재시작합니다. 이제 목록에 있는 사람만 사용할 수 있고, 나머지에게는 거절 메시지 + 본인 chat ID를 보여 줍니다.
+
+> 비워 두면(`CMO_ALLOWED_CHAT_IDS` 미설정) **누구나** 사용 가능합니다. 운영 시에는 꼭 채우는 걸 권장해요.
+
+## 🟢 상시 구동 (24시간 운영)
+
+봇은 폴링 방식이라 **항상 켜져 있는 환경**에서 돌아야 합니다. 가장 쉬운 두 가지:
+
+### A. Docker (권장 — 재부팅/크래시 시 자동 재시작)
+서버(작은 클라우드 VM, 집/사무실의 상시 PC 등)에 Docker만 있으면 됩니다.
+```bash
+cp .env.example .env   # 토큰/키/허용목록 입력
+docker compose up -d --build   # 백그라운드 상시 구동
+docker compose logs -f         # 로그 보기
+docker compose down            # 중지
+```
+`restart: unless-stopped` 설정 덕분에 서버를 재부팅해도 봇이 자동으로 다시 뜹니다.
+
+### B. systemd (리눅스 서버에 직접)
+`/etc/systemd/system/cmo-bot.service`:
+```ini
+[Unit]
+Description=Sloboda CMO Telegram bot
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/sloboda-marketing
+ExecStart=/opt/sloboda-marketing/.venv/bin/python run.py
+EnvironmentFile=/opt/sloboda-marketing/.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now cmo-bot
+sudo journalctl -u cmo-bot -f   # 로그
+```
+
+> 노트북에서 `python run.py`로 띄워도 되지만, 노트북을 끄거나 잠자기에 들어가면 봇도 멈춥니다. 24시간 운영하려면 위 A 또는 B를 쓰세요. 대화 메모리는 메모리에 저장되어 재시작 시 초기화됩니다.
 
 ## 환경 변수 (`.env`)
 
@@ -64,6 +133,7 @@ python run.py
 |------|:----:|--------|------|
 | `TELEGRAM_BOT_TOKEN` | ✅ | — | BotFather 토큰 |
 | `ANTHROPIC_API_KEY` | ✅ | — | Anthropic API 키 |
+| `CMO_ALLOWED_CHAT_IDS` | | (비어 있음) | 허용할 chat ID 목록(콤마). 비우면 전체 공개 |
 | `CMO_MODEL` | | `claude-opus-4-8` | 사용할 Claude 모델 |
 | `CMO_MAX_TOKENS` | | `8000` | 답변 최대 토큰 |
 | `CMO_ENABLE_WEB_SEARCH` | | `true` | 실시간 시장 조사(web_search) 사용 |
@@ -82,6 +152,8 @@ cmo_bot/
   claude_client.py      # Claude 호출 (adaptive thinking + web_search)
   bot.py                # 텔레그램 핸들러 / 메모리 / 메시지 분할
 requirements.txt
+Dockerfile               # 컨테이너 이미지
+docker-compose.yml       # 상시 구동(자동 재시작)
 .env.example
 ```
 
