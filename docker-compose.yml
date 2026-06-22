@@ -1,0 +1,8 @@
+# 상시 구동: docker compose up -d --build
+# 로그: docker compose logs -f
+# 중지: docker compose down
+services:
+  cmo-bot:
+    build: .
+    env_file: .env
+    restart: unless-stopped   # 서버 재부팅/크래시 시 자동 재시작 → 24시간 구동
