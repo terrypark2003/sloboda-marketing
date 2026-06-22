@@ -134,7 +134,7 @@ sudo journalctl -u cmo-bot -f   # 로그
 | `TELEGRAM_BOT_TOKEN` | ✅ | — | BotFather 토큰 |
 | `ANTHROPIC_API_KEY` | ✅ | — | Anthropic API 키 |
 | `CMO_ALLOWED_CHAT_IDS` | | (비어 있음) | 허용할 chat ID 목록(콤마). 비우면 전체 공개 |
-| `CMO_MODEL` | | `claude-opus-4-8` | 사용할 Claude 모델 |
+| `CMO_MODEL` | | `claude-opus-4-8` | 사용할 Claude 모델. 비용↓: `claude-sonnet-4-6`(~40%↓), `claude-haiku-4-5`(가장 저렴) |
 | `CMO_MAX_TOKENS` | | `8000` | 답변 최대 토큰 |
 | `CMO_ENABLE_WEB_SEARCH` | | `true` | 실시간 시장 조사(web_search) 사용 |
 | `CMO_ENABLE_THINKING` | | `true` | 적응형 사고(adaptive thinking) 사용 |
@@ -167,8 +167,14 @@ docker-compose.yml       # 상시 구동(자동 재시작)
 ## 비용 메모
 
 - 대화·시장 조사 한 번에 Claude API 토큰이 소모됩니다(특히 `web_search` 사용 시).
-- 비용을 줄이려면 `CMO_ENABLE_WEB_SEARCH=false` 또는 `CMO_MODEL=claude-sonnet-4-6`로
-  바꿀 수 있습니다.
+- 대략: 일반 대화 ~100~250원/회, 웹검색까지 도는 무거운 질문 ~300~600원/회 (모델·길이에 따라 변동).
+- 절약 모드 — `.env`에 아래처럼:
+  ```dotenv
+  CMO_MODEL=claude-sonnet-4-6     # 또는 claude-haiku-4-5 (가장 저렴)
+  CMO_ENABLE_WEB_SEARCH=false     # 실시간 조사 끄기 (가장 큰 절감)
+  CMO_ENABLE_THINKING=false       # 추론 토큰 줄이기
+  ```
+  thinking과 web_search 변형은 모델에 맞게 자동 선택되므로 `CMO_MODEL`만 바꿔도 동작합니다.
 
 ## 운영 메모
 
