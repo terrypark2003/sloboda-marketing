@@ -61,6 +61,20 @@ WEB_SEARCH_MAX_USES: int = int(os.getenv("CMO_WEB_SEARCH_MAX_USES", "5"))
 # Empty = open to anyone who finds the bot. Each user can get their own ID via /id.
 ALLOWED_CHAT_IDS: set[int] = _int_set("CMO_ALLOWED_CHAT_IDS")
 
+# Where persistent state (conversation memory, data notes, briefing opt-ins)
+# is stored. On Railway, attach a Volume and set CMO_DATA_DIR to its mount path
+# (e.g. /data) so state survives redeploys.
+DATA_DIR: str = os.getenv("CMO_DATA_DIR", "data").strip() or "data"
+
+# Naver Open API (optional) — enables /naver live shopping-market lookups.
+# Free keys: https://developers.naver.com/apps/
+NAVER_CLIENT_ID: str = os.getenv("NAVER_CLIENT_ID", "").strip()
+NAVER_CLIENT_SECRET: str = os.getenv("NAVER_CLIENT_SECRET", "").strip()
+
+# Weekly proactive briefing (KST). 0=Sunday … 6=Saturday; default Monday 09:00.
+BRIEFING_WEEKDAY: int = int(os.getenv("CMO_BRIEFING_WEEKDAY", "1"))
+BRIEFING_HOUR: int = int(os.getenv("CMO_BRIEFING_HOUR", "9"))
+
 
 def active_model() -> str:
     """The model string for the selected provider (for logging/UX)."""

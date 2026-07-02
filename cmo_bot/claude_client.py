@@ -73,22 +73,29 @@ def _extract_text(content) -> str:
     return "\n".join(p for p in parts if p).strip()
 
 
-def generate(history: list[dict]) -> tuple[str, list[dict], str]:
+def generate(
+    history: list[dict],
+    extra_context: str | None = None,
+    image: tuple[bytes, str] | None = None,  # noqa: ARG001 — images are Gemini-only for now
+) -> tuple[str, list[dict], str]:
     """Run one CMO turn.
 
     Args:
         history: full conversation, ending with the latest user message.
+        extra_context: appended to the system prompt (e.g. team data notes).
+        image: accepted for interface parity; not supported on this backend.
 
     Returns:
         (reply_text, updated_history, stop_reason). ``updated_history`` includes
         the assistant turn(s) produced this call and should replace the caller's
         stored history.
     """
+    system = SYSTEM_PROMPT if not extra_context else f"{SYSTEM_PROMPT}\n\n{extra_context}"
     messages = list(history)
     kwargs: dict = {
         "model": config.MODEL,
         "max_tokens": config.MAX_TOKENS,
-        "system": SYSTEM_PROMPT,
+        "system": system,
         "messages": messages,
     }
     tools = _tools()

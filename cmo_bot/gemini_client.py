@@ -38,9 +38,10 @@ def _to_contents(history: list[dict]) -> list[types.Content]:
     return contents
 
 
-def _build_config() -> types.GenerateContentConfig:
+def _build_config(extra_context: str | None = None) -> types.GenerateContentConfig:
+    system = SYSTEM_PROMPT if not extra_context else f"{SYSTEM_PROMPT}\n\n{extra_context}"
     kwargs: dict = {
-        "system_instruction": SYSTEM_PROMPT,
+        "system_instruction": system,
         "max_output_tokens": config.MAX_TOKENS,
     }
     if config.ENABLE_WEB_SEARCH:
@@ -52,12 +53,28 @@ def _build_config() -> types.GenerateContentConfig:
     return types.GenerateContentConfig(**kwargs)
 
 
-def generate(history: list[dict]) -> tuple[str, list[dict], str]:
-    """Run one CMO turn on Gemini. Same signature/contract as claude_client.generate."""
+def generate(
+    history: list[dict],
+    extra_context: str | None = None,
+    image: tuple[bytes, str] | None = None,
+) -> tuple[str, list[dict], str]:
+    """Run one CMO turn on Gemini. Same signature/contract as claude_client.generate.
+
+    Args:
+        history: conversation ending with the latest user message (text only —
+            images are passed live per turn and never stored in history).
+        extra_context: appended to the system prompt (e.g. team data notes).
+        image: optional (bytes, mime_type) attached to the last user message.
+    """
+    contents = _to_contents(history)
+    if image is not None and contents:
+        data, mime = image
+        contents[-1].parts.append(types.Part.from_bytes(data=data, mime_type=mime))
+
     response = _get_client().models.generate_content(
         model=config.GEMINI_MODEL,
-        contents=_to_contents(history),
-        config=_build_config(),
+        contents=contents,
+        config=_build_config(extra_context),
     )
     try:
         text = (response.text or "").strip()
