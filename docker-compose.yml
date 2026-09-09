@@ -6,3 +6,8 @@ services:
     build: .
     env_file: .env
     restart: unless-stopped   # 서버 재부팅/크래시 시 자동 재시작 → 24시간 구동
+    volumes:
+      - cmo-data:/app/data    # 대화·노트 영구 저장 (컨테이너 재빌드에도 유지)
+
+volumes:
+  cmo-data:

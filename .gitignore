@@ -1,6 +1,9 @@
 # Secrets
 .env
 
+# Persistent bot state (conversations, notes)
+data/
+
 # Python
 __pycache__/
 *.py[cod]

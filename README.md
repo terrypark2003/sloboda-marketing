@@ -13,6 +13,11 @@
 - 🎯 **마케팅·브랜드 전략 수립** — 신생 브랜드 / 저예산 가정, 실행 가능한 선택지 제시
 - 🔍 **시장 조사 & 고객 분석** — 실시간 웹검색(Gemini=Google 검색 그라운딩 / Claude=web_search)으로 경쟁사·트렌드를 **최신 데이터**로 조사
 - 📣 **브랜드 인지도 캠페인 기획** — 채널별 캠페인·콘텐츠·30일 실행 플랜
+- 📝 **데이터 노트** (`/note`) — 팀이 기록한 실데이터(방문수·전환율·펀딩 현황)를 **모든 답변에 반영**
+- 📸 **이미지 분석** — 상세페이지·광고 시안·경쟁사 화면 스크린샷을 보내면 피드백
+- ⏰ **주간 CMO 브리핑** (`/briefing on`) — 매주 월요일 아침, 시장 동향 + 이번 주 액션을 먼저 보고
+- 🛒 **네이버 실데이터 조회** (`/naver 키워드`) — 네이버 쇼핑 등록 상품 수·상위 노출·가격대를 실시간 조회 후 분석 (무료 네이버 API 키 필요)
+- 💾 **영구 메모리** — 대화·노트가 디스크에 저장되어 재시작에도 유지 (Railway는 볼륨 연결 시)
 
 CMO는 다음 브랜드 사실을 이미 알고 있습니다 (출처: 네이버 스마트스토어, 와디즈 캠페인 #408720, 블로그 리뷰):
 
@@ -56,9 +61,15 @@ python run.py
 - 그냥 메시지를 보내면 마케팅 전략으로 답합니다.
   - 예) "와디즈 펀딩 목표 금액 어떻게 잡을까?", "스마트스토어 첫 리뷰 30개 모으는 법"
 - `/menu` — 자주 쓰는 마케팅 옵션 버튼 (인지도 캠페인 · 시장 조사 · 타깃 분석 · 채널 전략 · 콘텐츠/카피 · KPI · 30일 플랜 · 와디즈)
-- `/reset` — 대화 맥락 초기화
+- `/note 내용` — 데이터 노트 기록 (예: `/note 지난주 방문 1,200명, 전환율 1.1%`) · `/notes` 목록 · `/delnote 번호` 삭제
+- `/briefing on|off|now` — 주간 CMO 브리핑 (매주 월요일 오전 9시 KST, `now`로 즉시 받기)
+- `/naver 키워드` — 네이버 쇼핑 실시간 경쟁 데이터 조회 + 분석
+- 📸 사진 전송 — 상세페이지/광고 시안/경쟁사 화면 분석 (캡션에 질문을 쓰면 그에 맞춰 답변)
+- `/reset` — 대화 맥락 초기화 (노트는 유지)
 - `/id` — 이 채팅의 chat ID 확인 (허용 목록 등록용)
 - `/help` — 도움말
+
+그룹 채팅에서는 봇을 **@멘션**하거나 봇 메시지에 **답장**할 때만 응답해요. (그룹 chat ID도 `/id`로 확인해 허용 목록에 추가)
 
 > 💡 **매출·방문수·전환율·광고비·리뷰 수** 같은 숫자를 알려 주면 훨씬 구체적인 조언을 받을 수 있어요.
 
@@ -107,6 +118,14 @@ docker compose down            # 중지
 ```
 `restart: unless-stopped` 설정 덕분에 서버를 재부팅해도 봇이 자동으로 다시 뜹니다.
 
+### A-2. Railway (클라우드 — 현재 운영 방식)
+1. [railway.com](https://railway.com) → New Project → **Deploy from GitHub repo** → 이 저장소 선택 (브랜치 `main`)
+2. **Variables**에 `TELEGRAM_BOT_TOKEN`, `GEMINI_API_KEY`, `CMO_ALLOWED_CHAT_IDS` 입력 (+ 선택: `NAVER_CLIENT_ID/SECRET`)
+3. **(권장) 볼륨 연결** — 대화·노트가 재배포에도 유지되게:
+   - 서비스 우클릭 → **Attach Volume** → Mount path `/data`
+   - Variables에 `CMO_DATA_DIR=/data` 추가
+   - 볼륨이 없어도 봇은 정상 동작하지만, 재배포 때 대화 기록·노트가 초기화됩니다.
+
 ### B. systemd (리눅스 서버에 직접)
 `/etc/systemd/system/cmo-bot.service`:
 ```ini
@@ -143,6 +162,10 @@ sudo journalctl -u cmo-bot -f   # 로그
 | `ANTHROPIC_API_KEY` | anthropic일 때 ✅ | — | Anthropic API 키 |
 | `CMO_MODEL` | | `claude-opus-4-8` | (anthropic) Claude 모델. 비용↓: `claude-sonnet-4-6`, `claude-haiku-4-5` |
 | `CMO_ALLOWED_CHAT_IDS` | | (비어 있음) | 허용할 chat ID 목록(콤마). 비우면 전체 공개 |
+| `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | | (비어 있음) | 네이버 검색 API 키 — 있으면 `/naver` 활성화 ([무료 발급](https://developers.naver.com/apps/)) |
+| `CMO_DATA_DIR` | | `data` | 대화·노트 영구 저장 경로 (Railway 볼륨 마운트 경로로 지정) |
+| `CMO_BRIEFING_WEEKDAY` | | `1` | 주간 브리핑 요일 (0=일 … 6=토) |
+| `CMO_BRIEFING_HOUR` | | `9` | 주간 브리핑 시각 (KST) |
 | `CMO_MAX_TOKENS` | | `8000` | 답변 최대 토큰 |
 | `CMO_ENABLE_WEB_SEARCH` | | `true` | 실시간 시장 조사(웹검색) 사용 |
 | `CMO_ENABLE_THINKING` | | `true` | 추론 사용 (false면 비용↓) |
@@ -158,9 +181,10 @@ cmo_bot/
   brand.py              # 브랜드 지식 + CMO 시스템 프롬프트 (지식의 단일 출처)
   menu.py               # 인라인 "마케팅 옵션" 메뉴
   llm.py                # 제공사 선택 (CMO_PROVIDER → gemini / anthropic)
-  gemini_client.py      # Gemini 호출 (Google 검색 그라운딩)
+  gemini_client.py      # Gemini 호출 (Google 검색 그라운딩 + 이미지 분석)
   claude_client.py      # Claude 호출 (adaptive thinking + web_search)
-  bot.py                # 텔레그램 핸들러 / 메모리 / 메시지 분할
+  naver.py              # 네이버 쇼핑/블로그 실데이터 조회 (/naver)
+  bot.py                # 텔레그램 핸들러 / 영구 메모리 / 노트 / 브리핑 / 메시지 분할
 requirements.txt
 Dockerfile               # 컨테이너 이미지
 docker-compose.yml       # 상시 구동(자동 재시작)
@@ -189,5 +213,6 @@ docker-compose.yml       # 상시 구동(자동 재시작)
 
 - 봇은 폴링 방식으로 동작하므로 **항상 켜져 있는 환경**(개인 서버, 작은 VM, 라즈베리파이 등)에서
   `python run.py`로 띄워 두면 됩니다.
-- 대화 메모리는 메모리(in-memory)에 저장되며 봇을 재시작하면 초기화됩니다.
+- 대화 기록·데이터 노트·브리핑 설정은 `CMO_DATA_DIR`(기본 `./data`)에 저장되어 재시작에도 유지됩니다.
+  (Railway처럼 파일시스템이 초기화되는 환경에서는 볼륨을 연결해야 유지돼요.)
 - 시크릿(`.env`)은 절대 깃에 커밋하지 마세요. (`.gitignore`에 이미 포함)
